@@ -1,0 +1,177 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  PLS-AKA Protocol (Symbolic HLPSL Model with Mathematical Relations)
+%  Entities: Wearable Device (WD), User (U), Cloud Server (CS)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+role wearable_device(WD, U, CS : agent,
+                     h : hash_func)
+played_by WD
+def=
+  local
+    State : nat,
+    n1, n2, n4, n5 : text,
+    T1, T2, T4, T5 : text,
+    ID_WD, R0, Rnew, PID_WD, TID_WD, TID_WD_new : text,
+    M1, M2, M3, M6, M8, M9, M10, M11 : message
+  init
+    State := 0
+  transition
+
+    %%% A3: Receive {TID_i, n1, T1}
+    1. State = 0 /\
+       Rcv(U, WD, {TID_i, n1, T1})
+       =|>
+       State' := 1 /\
+       new(n2) /\ new(T2) /\
+       new(Rnew) /\
+       PID_WD := h(ID_WD.R0) /\
+       M1 := xor(h(TID_WD.PID_WD), Rnew) /\
+       M2 := xor(h(M1.PID_WD), n2) /\
+       M3 := h(M1.TID_i.T2.n1.n2) /\
+       Snd(WD, U, {M1, M2, M3, TID_WD, T2})
+
+    %%% A11: Receive Msg5 {TID_WD*, M10, M11, T4, T5}
+    2. State = 1 /\
+       Rcv(U, WD, {TID_WD_star, M10, M11, T4, T5})
+       =|>
+       State' := 2 /\
+       new(T6) /\
+       % Symbolic reconstruction
+       (n4.n5) := xor(M10, h(TID_WD.T4.T5)) /\
+       PID_WD := h(ID_WD.R0) /\
+       SK_WD_U := h(TID_i.TID_WD.PID_WD.n2.n4.T4) /\
+       M11_star := h(TID_i.SK_WD_U.TID_WD_star.n5.T4.T5) /\
+       % Authentication check
+       M11_star = M11 /\
+       witness(WD, U, wd_auth, SK_WD_U) /\
+       request(WD, U, key_agree, SK_WD_U)
+
+end role
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+role user(U, WD, CS : agent,
+          h : hash_func)
+played_by U
+def=
+  local
+    State : nat,
+    n1, n3, n4, n5 : text,
+    T1, T3, T4, T5 : text,
+    HID_i, HPW_i, r_i, E_i, B_i, R_i : text,
+    M1, M2, M3, M4, M5, M6, M8, M9, M10, M11 : message,
+    SK_WD_U, SK_CS_U : message
+  init
+    State := 0
+  transition
+
+    %%% A3: Send {TID_i, n1, T1}
+    1. State = 0
+       =|>
+       State' := 1 /\
+       new(n1) /\ new(T1) /\
+       Snd(U, WD, {TID_i, n1, T1})
+
+    %%% A5: Receive Msg2 {M1,M2,M3,TID_WD,T2}
+    2. State = 1 /\
+       Rcv(WD, U, {M1, M2, M3, TID_WD, T2})
+       =|>
+       State' := 2 /\
+       new(n3) /\ new(T3) /\
+       B_i := xor(E_i, h(HID_i.HPW_i.r_i)) /\
+       M4 := xor((n1.n3), h(B_i.R_i.T3)) /\
+       M5 := h(TID_i.TID_WD.M3.M4.n3.T3) /\
+       Snd(U, CS, {M1, M2, M3, M4, M5, TID_i, TID_WD, T2, T3})
+
+    %%% A9: Receive Msg4 {M6, M8, M9, TID_WD*, TID_i*, T4}
+    3. State = 2 /\
+       Rcv(CS, U, {M6, M8, M9, TID_WD_star, TID_i_star, T4})
+       =|>
+       State' := 3 /\
+       new(n5) /\ new(T5) /\
+       (n4.n5) := xor(M6, h(TID_i.R_i.n3.T4)) /\
+       SK_CS_U := h(TID_i.(B_i xor T4).n3.n4.T3) /\
+       SK_WD_U := xor(M8, h(B_i.n1.n3.n4.T3.T4)) /\
+       M7 := h(M6.SK_CS_U.SK_WD_U.T3.T4) /\
+       M10 := xor((n4.n5), h(TID_WD_star.T4.T5)) /\
+       M11 := h(TID_i.SK_WD_U.TID_WD_star.n5.T4.T5) /\
+       Snd(U, WD, {TID_WD_star, M10, M11, T4, T5}) /\
+       witness(U, WD, key_agree, SK_WD_U)
+
+end role
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+role cloud_server(CS, U, WD : agent,
+                  h : hash_func)
+played_by CS
+def=
+  local
+    State : nat,
+    n2, n3, n4 : text,
+    T2, T3, T4 : text,
+    HID_i, C_i, R_i, B_i, K : text,
+    M1, M2, M3, M4, M5, M6, M7, M8, M9 : message,
+    SK_CS_U, SK_WD_U : message
+  init
+    State := 0
+  transition
+
+    %%% A6: Receive Msg3 {M1,M2,M3,M4,M5,TID_i,TID_WD,T2,T3}
+    1. State = 0 /\
+       Rcv(U, CS, {M1, M2, M3, M4, M5, TID_i, TID_WD, T2, T3})
+       =|>
+       State' := 1 /\
+       new(n4) /\ new(T4) /\
+       R_i_star := xor(C_i, h(HID_i.K)) /\
+       B_i_star := h(HID_i.R_i_star.K) /\
+       (n1.n3) := xor(M4, h(B_i_star.R_i_star.T3)) /\
+       M5_star := h(TID_i.TID_WD.M3.M4.n3.T3) /\
+       M5_star = M5 /\
+       SK_CS_U := h(TID_i.(B_i_star xor T4).n3.n4.T3) /\
+       SK_WD_U := h(TID_i.TID_WD.h(ID_WD.R_i_star).n2.n4.T4) /\
+       M6 := xor((n2.n4), h(TID_i.R_i_star.n3.T4)) /\
+       M7 := h(M6.SK_CS_U.SK_WD_U.T3.T4) /\
+       M8 := xor(SK_WD_U, h(B_i_star.n1.n3.n4.T3.T4)) /\
+       M9 := h(TID_i.TID_WD.M7.M8.T3.T4) /\
+       Snd(CS, U, {M6, M8, M9, TID_WD_star, TID_i_star, T4}) /\
+       witness(CS, U, cs_auth, SK_CS_U)
+
+end role
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+role session()
+def=
+  local
+    WD, U, CS : agent,
+    h : hash_func
+  composition
+    wearable_device(WD, U, CS, h)
+    /\ user(U, WD, CS, h)
+    /\ cloud_server(CS, U, WD, h)
+end role
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+role environment()
+def=
+  const
+    wd, u, cs : agent,
+    h : hash_func
+  intruder_knowledge = {wd, u, cs, h}
+  composition
+    session()
+end role
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+goal
+  secrecy_of SK_WD_U, SK_CS_U
+  authentication_on wd_auth
+  authentication_on key_agree
+end goal
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+environment()
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
