@@ -1,0 +1,23 @@
+SUMMARY
+  SAFE
+
+DETAILS
+  BOUNDED_NUMBER_OF_SESSIONS
+
+PROTOCOL
+  /home/span/span/testsuite/results/PSL-AKA.if
+
+GOAL
+  as_specified
+
+BACKEND
+  OFMC
+
+COMMENTS
+
+STATISTICS
+  parseTime: 0.00s
+  searchTime: 5.12s
+  visitedNodes: 25 nodes
+  depth: 3 plies
+

@@ -1,0 +1,21 @@
+SUMMARY
+  SAFE
+
+DETAILS
+  BOUNDED_NUMBER_OF_SESSIONS
+  TYPED_MODEL
+
+PROTOCOL
+  /home/span/span/testsuite/results/PSL-AKA.if
+
+GOAL
+  As Specified
+
+BACKEND
+  CL-AtSe
+
+STATISTICS
+  Analysed   : 0 states
+  Reachable  : 0 states
+  Translation: 0.04 seconds
+  Computation: 0.02 seconds
